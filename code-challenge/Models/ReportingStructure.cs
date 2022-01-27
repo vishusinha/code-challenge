@@ -11,10 +11,5 @@ namespace challenge.Models
         public int numberOfReports { get; set; }
 
     }
-    public class EmployeeCompensation
-    {
-        public Employee Employee { get; set; }
-        public Compensation Compensation { get; set; }
-
-    }
+    
 }

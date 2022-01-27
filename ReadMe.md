@@ -103,17 +103,13 @@ The following endpoints are available to use:
 ```
 * Compensation CREATE
     * HTTP Method: POST 
-    * URL: localhost:8080/api/employee/Compensatio/Create
+    * URL: localhost:8080/api/employee/Compensation/Create
     * PAYLOAD: Compensation
     * RESPONSE: Compensation
 * READ
     * HTTP Method: GET 
-    * URL: http://localhost:8080/api/employee/Compensation/16a596ae-edd3-4847-99fe-c4518e82c86f
+    * URL: http://localhost:8080/api/employee/Compensation/get/16a596ae-edd3-4847-99fe-c4518e82c86f
     * RESPONSE: Compensation
-* UPDATE
-    * HTTP Method: PUT 
-    * URL: localhost:8080/api/employee/Compensatio/Update/{id}
-    * PAYLOAD: Compensation
-    * RESPONSE: Compensation
+
 
 

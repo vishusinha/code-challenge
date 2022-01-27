@@ -19,6 +19,12 @@ namespace challenge.Services
             _logger = logger;
         }
 
+
+        /// <summary>
+        ///  Create Compensation Service for Endpoint
+        /// </summary>
+        /// <param name="compensation"></param>
+        /// <returns>Compensation</returns>
         public Compensation Create(Compensation compensation)
         {
             if(compensation != null)
@@ -57,7 +63,12 @@ namespace challenge.Services
 
             return null;
         }
-
+        /// <summary>
+        ///  If the Employee Exixts and create method is called then it replaces the data
+        /// </summary>
+        /// <param name="originalCompensation"></param>
+        /// <param name="newCompensation"></param>
+        /// <returns>Compensation</returns>
         public Compensation Replace(Compensation originalCompensation, Compensation newCompensation)
         {
             if(originalCompensation != null)

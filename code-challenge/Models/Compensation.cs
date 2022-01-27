@@ -13,4 +13,10 @@ namespace challenge.Models
         public DateTime EffectiveDate { get; set; }
        
     }
+    public class EmployeeCompensation
+    {
+        public Employee Employee { get; set; }
+        public Compensation Compensation { get; set; }
+
+    }
 }

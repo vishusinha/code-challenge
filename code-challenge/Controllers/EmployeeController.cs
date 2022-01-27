@@ -46,6 +46,14 @@ namespace challenge.Controllers
 
             return Ok(employee);
         }
+
+        /// <summary>
+        /// Gets Employee Reporting Stucture with NumberofReports  
+        /// </summary>
+        /// <param name="id" Or EmployeeID></param>
+        /// <returns>NewEmployee with NumberofReports property updated</returns>
+        /// 
+
         [HttpGet("structure/{id}", Name = "getEmployeeStructureById")]
         public IActionResult GetEmployeeStructureById(String id)
         {
@@ -130,7 +138,7 @@ namespace challenge.Controllers
 
 
         #region Compensation end points
-        [HttpGet("compensation/{id}", Name = "getEmployeeCompensationById")]
+        [HttpGet("compensation/get/{id}", Name = "getEmployeeCompensationById")]
         public IActionResult GetCompensationByEmployeeId(String id)
         {
             _logger.LogDebug($"Received employee Compensation get request for '{id}'");
@@ -152,7 +160,7 @@ namespace challenge.Controllers
          }
 
         [HttpPost("compensation/create", Name = "createCompensation")]
-        public IActionResult CreateCompensation(Compensation compensation)
+        public IActionResult CreateCompensation([FromBody] Compensation compensation)
         {
             _logger.LogDebug($"Received employee compensation create request for '{compensation.EmployeeId}'");
 

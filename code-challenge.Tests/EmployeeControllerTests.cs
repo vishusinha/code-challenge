@@ -41,12 +41,22 @@ namespace code_challenge.Tests.Integration
         }
 
         [TestMethod]
+        /// <summary>
+        /// To test the Create Compensation REST endpoint 
+        /// Compensation CREATE
+        ///* HTTP Method: POST
+        ///* URL: localhost:8080/api/employee/Compensation/Create
+        ///* PAYLOAD: Compensation
+        ///* RESPONSE: Compensation
+        /// </summary>
+
+
         public void CreateCompensation_Returns_Created()
         {
             // Arrange
             var compensation = new Compensation()
-            {   CompensationId = "xyzabc",
-                EmployeeId = "03aa1462-ffa9-4978-901b-7c001562cf6f",
+            {   CompensationId = "testcompid",
+                EmployeeId = "16a596ae-edd3-4847-99fe-c4518e82c86f",
                 Salary = 6000,
                 EffectiveDate = Convert.ToDateTime("10-05-2021"),
                 
@@ -97,7 +107,18 @@ namespace code_challenge.Tests.Integration
             Assert.AreEqual(employee.Department, newEmployee.Department);
             Assert.AreEqual(employee.Position, newEmployee.Position);
         }
+        
+        
+      
         [TestMethod]
+        /// <summary>
+        /// GET Reporting Structure to get NumberOfReports
+        ///  * HTTP Method: GET 
+        ///  * Param : EmployeeID
+        ///  * URL:  http://localhost:8080/api/employee/Structure/16a596ae-edd3-4847-99fe-c4518e82c86f
+        ///  * RESPONSE: ReportingStructure
+        /// </summary>
+
         public void GetEmployeeStructureById_Returns_Ok()
         {
             // Arrange
@@ -117,7 +138,18 @@ namespace code_challenge.Tests.Integration
             Assert.AreEqual(expectedLastName, reportingStructure.Employee.LastName);
             Assert.AreEqual(expectednumberOfReports, reportingStructure.numberOfReports);
         }
+       
+        
         [TestMethod]
+        /// <summary>
+        /// To Get Compensation details Salary and Effectivedate 
+        /// Compensation GET
+        ///* Param : EmployeeID
+        ///* HTTP Method: GET 
+        ///* URL: http://localhost:8080/api/employee/Compensation/get/16a596ae-edd3-4847-99fe-c4518e82c86f
+        ///*RESPONSE: Compensation
+        /// </summary>
+
         public void GetCompensationById_Returns_Ok()
         {
             // Arrange
@@ -128,10 +160,9 @@ namespace code_challenge.Tests.Integration
 
 
             // Execute
-            var getRequestTask = _httpClient.GetAsync($"api/employee/compensation/{employeeId}");
+            var getRequestTask = _httpClient.GetAsync($"api/employee/compensation/get/{employeeId}");
             var response = getRequestTask.Result;
-            Console.WriteLine("response is : " + response);
-            //Console.WriteLine("response is : " + response);
+
             // Assert
             Assert.AreEqual(HttpStatusCode.OK, response.StatusCode);
             var employeeCompensation = response.DeserializeContent<EmployeeCompensation>();

@@ -1,3 +1,8 @@
 ﻿[
-  
+  {
+    "CompensationId": "testcompid",
+    "EmployeeId": "16a596ae-edd3-4847-99fe-c4518e82c86f",
+    "Salary": 6000.0,
+    "EffectiveDate": "2021-10-05T00:00:00"
+  }
 ]
