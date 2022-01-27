@@ -86,17 +86,18 @@ Compensation from the persistence layer.
 ## Delivery
 Please upload your results to a publicly accessible Git repo. Free ones are provided by Github and Bitbucket.
 
+########################### SOLUTION ###############################################
 
-TASK1
+TASK1 : New Endpoint added to get reporting structure and numberofreports data. 
 
 READ
  * HTTP Method: GET 
-    * URL:  http://localhost:8080/api/employee/Structure/16a596ae-edd3-4847-99fe-c4518e82c86f
-    * RESPONSE: ReportingStructure
+ * URL:  http://localhost:8080/api/employee/Structure/16a596ae-edd3-4847-99fe-c4518e82c86f
+ * RESPONSE: ReportingStructure
 
 
 
-TASK2
+TASK2 : New Endpoint added to Create and Get Compensation.
 
 ### Added endpoints 
 The following endpoints are available to use:
