@@ -88,8 +88,9 @@ Please upload your results to a publicly accessible Git repo. Free ones are prov
 
 ########################### SOLUTION ###############################################
 
-TASK1 : New Endpoint added to get reporting structure and numberofreports data. 
-
+TASK #1 : New Endpoint added to get reporting structure and numberofreports data:
+### Added endpoints 
+The following endpoints are available to use:
 READ
  * HTTP Method: GET 
  * URL:  http://localhost:8080/api/employee/Structure/16a596ae-edd3-4847-99fe-c4518e82c86f
@@ -98,15 +99,17 @@ READ
 
 
 TASK2 : New Endpoint added to Create and Get Compensation.
-
 ### Added endpoints 
 The following endpoints are available to use:
 ```
 * Compensation CREATE
     * HTTP Method: POST 
     * URL: localhost:8080/api/employee/Compensation/Create
-    * PAYLOAD: Compensation
+    * PAYLOAD: Compensation Example {	EmployeeId": "16a596ae-edd3-4847-99fe-c4518e82c86f",
+    					"Salary": 10000.00,
+    					"EffectiveDate": "2021-10-05T00:00:00"   }
     * RESPONSE: Compensation
+	
 * READ
     * HTTP Method: GET 
     * URL: http://localhost:8080/api/employee/Compensation/get/16a596ae-edd3-4847-99fe-c4518e82c86f
