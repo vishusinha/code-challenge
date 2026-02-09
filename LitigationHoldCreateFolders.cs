@@ -154,6 +154,9 @@ namespace CAO.LitigationHold
         }
 
         // ---------- Permissions (icacls) ----------
+        // Each contributor gets RW only on their own person folder (+ sources/sub beneath it).
+        // A single recursive /T grant on the person folder covers all children,
+        // so we do NOT grant at the case-root level (that would leak access across persons).
         private static void ApplyPermissions(Application app, WorkflowEventArgs args, Settings s)
         {
             if (s.Persons.Count == 0) { LogDual(app, args, s.LogFolder, "ACL: No persons to process."); return; }
@@ -175,28 +178,6 @@ namespace CAO.LitigationHold
                 LogDual(app, args, s.LogFolder, "ACL WARN: SourcePermissions missing in XML. Defaulting to (OI)(CI)M");
             }
 
-            // Case-root recursive grant first (inherit down)
-            for (int i = 0; i < s.Persons.Count; i++)
-            {
-                PersonSpec p = s.Persons[i];
-                for (int u = 0; u < p.Contributors.Count; u++)
-                {
-                    string user = DomainUser(s.Domain, p.Contributors[u]);
-
-                    TryRemoveAce(app, args, s, caseFolder, user);
-
-                    for (int k = 0; k < normPersonPerms.Count; k++)
-                    {
-                        LogDual(app, args, s.LogFolder,
-                            "ACL GRANT (case-root recursive) Folder=" + caseFolder + " User=" + user + " Perm=" + normPersonPerms[k]);
-
-                        string arg = "/grant " + Q(user) + ":" + normPersonPerms[k] + " /T";
-                        RunIcacls(app, args, s, caseFolder, arg);
-                    }
-                }
-            }
-
-            // Explicit per person/source/sub (optional reinforcement)
             for (int i = 0; i < s.Persons.Count; i++)
             {
                 PersonSpec p = s.Persons[i];
@@ -206,40 +187,34 @@ namespace CAO.LitigationHold
                 {
                     string user = DomainUser(s.Domain, p.Contributors[u]);
 
+                    // Clean slate: remove any pre-existing ACE for this user on their person folder
+                    TryRemoveAce(app, args, s, personFolder, user);
+
+                    // Single recursive grant on the person folder — inherits into all source/sub folders
                     for (int k = 0; k < normPersonPerms.Count; k++)
                     {
                         LogDual(app, args, s.LogFolder,
-                            "ACL GRANT (person folder) Folder=" + personFolder + " User=" + user + " Perm=" + normPersonPerms[k]);
+                            "ACL GRANT (person folder recursive) Folder=" + personFolder +
+                            " User=" + user + " Perm=" + normPersonPerms[k]);
 
-                        string arg = "/grant " + Q(user) + ":" + normPersonPerms[k];
+                        string arg = "/grant " + Q(user) + ":" + normPersonPerms[k] + " /T";
                         RunIcacls(app, args, s, personFolder, arg);
                     }
 
-                    for (int j = 0; j < s.Sources.Count; j++)
+                    // If source-level perms differ from person-level, apply them explicitly
+                    if (!PermsEqual(normSourcePerms, normPersonPerms))
                     {
-                        string srcFolder = Path.Combine(personFolder, SanPart(s.Sources[j]));
-                        for (int sp = 0; sp < normSourcePerms.Count; sp++)
+                        for (int j = 0; j < s.Sources.Count; j++)
                         {
-                            LogDual(app, args, s.LogFolder,
-                                "ACL GRANT (source folder) Folder=" + srcFolder + " User=" + user + " Perm=" + normSourcePerms[sp]);
-
-                            string arg = "/grant " + Q(user) + ":" + normSourcePerms[sp];
-                            RunIcacls(app, args, s, srcFolder, arg);
-                        }
-
-                        if (!string.IsNullOrWhiteSpace(s.OnBaseSub))
-                        {
-                            string sub = Path.Combine(srcFolder, s.OnBaseSub);
-                            if (Directory.Exists(sub))
+                            string srcFolder = Path.Combine(personFolder, SanPart(s.Sources[j]));
+                            for (int sp = 0; sp < normSourcePerms.Count; sp++)
                             {
-                                for (int sp = 0; sp < normSourcePerms.Count; sp++)
-                                {
-                                    LogDual(app, args, s.LogFolder,
-                                        "ACL GRANT (onbase sub) Folder=" + sub + " User=" + user + " Perm=" + normSourcePerms[sp]);
+                                LogDual(app, args, s.LogFolder,
+                                    "ACL GRANT (source folder) Folder=" + srcFolder +
+                                    " User=" + user + " Perm=" + normSourcePerms[sp]);
 
-                                    string arg = "/grant " + Q(user) + ":" + normSourcePerms[sp];
-                                    RunIcacls(app, args, s, sub, arg);
-                                }
+                                string arg = "/grant " + Q(user) + ":" + normSourcePerms[sp] + " /T";
+                                RunIcacls(app, args, s, srcFolder, arg);
                             }
                         }
                     }
@@ -247,6 +222,14 @@ namespace CAO.LitigationHold
             }
 
             LogDual(app, args, s.LogFolder, "ACL: Completed.");
+        }
+
+        private static bool PermsEqual(List<string> a, List<string> b)
+        {
+            if (a.Count != b.Count) return false;
+            for (int i = 0; i < a.Count; i++)
+                if (!string.Equals(a[i], b[i], StringComparison.OrdinalIgnoreCase)) return false;
+            return true;
         }
 
         // Valid tokens: F,M,RX,R,W (tolerant of "R W","R,W","RW")
