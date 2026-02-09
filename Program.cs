@@ -29,6 +29,7 @@ namespace LitigationHold
         public List<Person> Employees { get; set; }
 
         public string SenderEmailID { get; set; }
+        public string CaseSentBy { get; set; }
     }
 
     public class Person
@@ -270,6 +271,16 @@ namespace LitigationHold
             if (hold == null) throw new ArgumentNullException(nameof(hold));
             if (string.IsNullOrWhiteSpace(pdfFilePath) || !File.Exists(pdfFilePath))
                 throw new FileNotFoundException("PDF file not found.", pdfFilePath);
+
+            // Cross-fill From and CaseSentBy: if one is null, copy from the other
+            if (hold.From == null && !string.IsNullOrWhiteSpace(hold.CaseSentBy))
+            {
+                hold.From = new Person { Name = hold.CaseSentBy.Trim() };
+            }
+            else if (string.IsNullOrWhiteSpace(hold.CaseSentBy) && hold.From != null)
+            {
+                hold.CaseSentBy = hold.From.Name;
+            }
 
             // Case Name from Re: "Litigation Hold: Olga Sokolov" -> "Olga Sokolov"
             string caseName = DeriveCaseName(hold.Re, caseNumber);
