@@ -178,6 +178,9 @@ namespace CAO.LitigationHold
                 LogDual(app, args, s.LogFolder, "ACL WARN: SourcePermissions missing in XML. Defaulting to (OI)(CI)M");
             }
 
+            // Track users already granted case-folder Read to avoid duplicate icacls calls
+            List<string> caseFolderGranted = new List<string>();
+
             for (int i = 0; i < s.Persons.Count; i++)
             {
                 PersonSpec p = s.Persons[i];
@@ -186,6 +189,20 @@ namespace CAO.LitigationHold
                 for (int u = 0; u < p.Contributors.Count; u++)
                 {
                     string user = DomainUser(s.Domain, p.Contributors[u]);
+
+                    // Grant non-inheriting Read on the case folder so the user can browse
+                    // to their person folder. No (OI)(CI) = "this folder only" — does NOT
+                    // leak into other person folders.
+                    if (!ContainsIgnoreCase(caseFolderGranted, user))
+                    {
+                        LogDual(app, args, s.LogFolder,
+                            "ACL GRANT (case folder list-only) Folder=" + caseFolder +
+                            " User=" + user + " Perm=R (this folder only)");
+
+                        string listArg = "/grant " + Q(user) + ":R";
+                        RunIcacls(app, args, s, caseFolder, listArg);
+                        caseFolderGranted.Add(user);
+                    }
 
                     // Clean slate: remove any pre-existing ACE for this user on their person folder
                     TryRemoveAce(app, args, s, personFolder, user);
@@ -478,6 +495,13 @@ namespace CAO.LitigationHold
         }
 
         // ---------- Utils ----------
+        private static bool ContainsIgnoreCase(List<string> list, string value)
+        {
+            for (int i = 0; i < list.Count; i++)
+                if (string.Equals(list[i], value, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
         private static string SanPart(string s)
         {
             if (string.IsNullOrWhiteSpace(s)) return "unnamed";
