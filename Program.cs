@@ -29,7 +29,7 @@ namespace LitigationHold
         public List<Person> Employees { get; set; }
 
         public string SenderEmailID { get; set; }
-        public string CaseSentBy { get; set; }
+        public Person CaseSentBy { get; set; }
     }
 
     public class Person
@@ -273,13 +273,13 @@ namespace LitigationHold
                 throw new FileNotFoundException("PDF file not found.", pdfFilePath);
 
             // Cross-fill From and CaseSentBy: if one is null, copy from the other
-            if (hold.From == null && !string.IsNullOrWhiteSpace(hold.CaseSentBy))
+            if (hold.From == null && hold.CaseSentBy != null && !string.IsNullOrWhiteSpace(hold.CaseSentBy.Name))
             {
-                hold.From = new Person { Name = hold.CaseSentBy.Trim() };
+                hold.From = new Person { Name = hold.CaseSentBy.Name.Trim(), Designation = hold.CaseSentBy.Designation };
             }
-            else if (string.IsNullOrWhiteSpace(hold.CaseSentBy) && hold.From != null)
+            else if ((hold.CaseSentBy == null || string.IsNullOrWhiteSpace(hold.CaseSentBy.Name)) && hold.From != null)
             {
-                hold.CaseSentBy = hold.From.Name;
+                hold.CaseSentBy = new Person { Name = hold.From.Name, Designation = hold.From.Designation };
             }
 
             // Case Name from Re: "Litigation Hold: Olga Sokolov" -> "Olga Sokolov"
