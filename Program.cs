@@ -272,14 +272,17 @@ namespace LitigationHold
             if (string.IsNullOrWhiteSpace(pdfFilePath) || !File.Exists(pdfFilePath))
                 throw new FileNotFoundException("PDF file not found.", pdfFilePath);
 
-            // Cross-fill From and CaseSentBy: if one is null, copy from the other
-            if (hold.From == null && hold.CaseSentBy != null && !string.IsNullOrWhiteSpace(hold.CaseSentBy.Name))
+            // Cross-fill From and CaseSentBy: if one has no Name, copy from the other
+            bool fromHasName = hold.From != null && !string.IsNullOrWhiteSpace(hold.From.Name);
+            bool sentByHasName = hold.CaseSentBy != null && !string.IsNullOrWhiteSpace(hold.CaseSentBy.Name);
+
+            if (!fromHasName && sentByHasName)
             {
                 hold.From = new Person { Name = hold.CaseSentBy.Name.Trim(), Designation = hold.CaseSentBy.Designation };
             }
-            else if ((hold.CaseSentBy == null || string.IsNullOrWhiteSpace(hold.CaseSentBy.Name)) && hold.From != null)
+            else if (!sentByHasName && fromHasName)
             {
-                hold.CaseSentBy = new Person { Name = hold.From.Name, Designation = hold.From.Designation };
+                hold.CaseSentBy = new Person { Name = hold.From.Name.Trim(), Designation = hold.From.Designation };
             }
 
             // Case Name from Re: "Litigation Hold: Olga Sokolov" -> "Olga Sokolov"
