@@ -314,26 +314,56 @@ namespace LitigationHold
             AddSenderEmployeeRecord(employeeMap, hold);
 
             // Document-level email rollups:
-            //   - "MAIL To" = emails where employee record MAIL role is CC/FROM/NULL/SENDER (everything except TO)
+            //   - "MAIL To" = ordered: FROM first, then CC, then SENDER, then all other case users
             //   - "MAIL Cc" = emails where employee record MAIL role is TO
-            var mailToEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var mailToOrdered = new List<string>();
             var mailCcEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var mailToSeen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+            // Helper to append email to MAIL To list in order, skipping duplicates
+            Action<string> addMailTo = (string e) =>
+            {
+                if (!string.IsNullOrWhiteSpace(e) && mailToSeen.Add(e))
+                    mailToOrdered.Add(e);
+            };
+
+            // Pass 1: FROM
             foreach (var emp in employeeMap.Values)
             {
-                var email = (emp.Email ?? "").Trim();
-                if (string.IsNullOrWhiteSpace(email))
-                    continue;
-
-                var role = (emp.MailRole ?? "").Trim().ToUpperInvariant();
-
-                if (role == "TO")
-                    mailCcEmails.Add(email);     // TO -> MAIL Cc
-                else
-                    mailToEmails.Add(email);     // CC/FROM/blank/SENDER -> MAIL To
+                if ((emp.MailRole ?? "").Trim().ToUpperInvariant() == "FROM"
+                    && !string.IsNullOrWhiteSpace(emp.Email))
+                    addMailTo(emp.Email.Trim());
             }
 
-            string mailToValue = string.Join("; ", mailToEmails.OrderBy(x => x));
+            // Pass 2: CC
+            foreach (var emp in employeeMap.Values)
+            {
+                if ((emp.MailRole ?? "").Trim().ToUpperInvariant() == "CC"
+                    && !string.IsNullOrWhiteSpace(emp.Email))
+                    addMailTo(emp.Email.Trim());
+            }
+
+            // Pass 3: SENDER
+            foreach (var emp in employeeMap.Values)
+            {
+                if ((emp.MailRole ?? "").Trim().ToUpperInvariant() == "SENDER"
+                    && !string.IsNullOrWhiteSpace(emp.Email))
+                    addMailTo(emp.Email.Trim());
+            }
+
+            // Pass 4: all remaining case users (blank role / any other role except TO)
+            foreach (var emp in employeeMap.Values)
+            {
+                var role = (emp.MailRole ?? "").Trim().ToUpperInvariant();
+                if (string.IsNullOrWhiteSpace(emp.Email)) continue;
+
+                if (role == "TO")
+                    mailCcEmails.Add(emp.Email.Trim());
+                else
+                    addMailTo(emp.Email.Trim());
+            }
+
+            string mailToValue = string.Join("; ", mailToOrdered);
             string mailCcValue = string.Join("; ", mailCcEmails.OrderBy(x => x));
 
             // URLs
