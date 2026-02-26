@@ -139,27 +139,47 @@ namespace LitigationHold
             _config = config;
         }
 
-        // Search by DisplayName using PrincipalSearcher
+        // Search by DisplayName using PrincipalSearcher.
+        // If exact match fails and name has 3+ parts, retries without middle name(s).
         public AdUserInfo LookupUserByDisplayName(string displayName)
         {
             if (string.IsNullOrWhiteSpace(displayName))
                 return null;
 
+            // Try exact match first
+            var result = LookupByDisplayNameExact(displayName.Trim());
+            if (result != null)
+                return result;
+
+            // If name has middle name(s), retry with "FirstName LastName" only
+            string[] parts = displayName.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length >= 3)
+            {
+                string firstLast = parts[0] + " " + parts[parts.Length - 1];
+                Console.WriteLine("[INFO] AD retry without middle name: '{0}' -> '{1}'", displayName, firstLast);
+                result = LookupByDisplayNameExact(firstLast);
+                if (result != null)
+                    return result;
+            }
+
+            Console.WriteLine("[WARN] AD user not found for display name '{0}'", displayName);
+            return null;
+        }
+
+        private AdUserInfo LookupByDisplayNameExact(string displayName)
+        {
             try
             {
                 using (var ctx = new PrincipalContext(ContextType.Domain, _config.Domain))
                 using (var filter = new UserPrincipal(ctx))
                 {
-                    filter.DisplayName = displayName.Trim();
+                    filter.DisplayName = displayName;
 
                     using (var searcher = new PrincipalSearcher(filter))
                     {
                         var result = searcher.FindOne() as UserPrincipal;
                         if (result == null)
-                        {
-                            Console.WriteLine("[WARN] AD user not found for display name '{0}'", displayName);
                             return null;
-                        }
 
                         return new AdUserInfo
                         {
