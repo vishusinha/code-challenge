@@ -368,12 +368,13 @@ namespace LitigationHold
             }
 
             // Split at 250 chars: primary keyword gets first 250, overflow goes to _ext
-            string mailToFull = string.Join(";", mailToOrdered);
+            // Trailing ";" after the last EmployeeID in each segment
+            string mailToFull = mailToOrdered.Count > 0 ? string.Join(";", mailToOrdered) + ";" : "";
             string mailToValue;
             string mailToExtValue;
             SplitAt250(mailToFull, out mailToValue, out mailToExtValue);
 
-            string mailCcFull = string.Join(";", mailCcOrdered);
+            string mailCcFull = mailCcOrdered.Count > 0 ? string.Join(";", mailCcOrdered) + ";" : "";
             string mailCcValue;
             string mailCcExtValue;
             SplitAt250(mailCcFull, out mailCcValue, out mailCcExtValue);
@@ -632,7 +633,7 @@ namespace LitigationHold
         }
 
         // Split a ";"-delimited string at the 250-char boundary without cutting an ID in half.
-        // primary gets the first chunk (<=250 chars), overflow gets the rest.
+        // Both primary and overflow end with ";" (e.g. "JSMITH;MJONES;" and "VSINHA;KLEE;").
         private static void SplitAt250(string full, out string primary, out string overflow)
         {
             const int limit = 250;
@@ -653,8 +654,13 @@ namespace LitigationHold
                 return;
             }
 
-            primary = full.Substring(0, cut);
+            // Include the ";" in primary: "JSMITH;MJONES;"
+            primary = full.Substring(0, cut + 1);
             overflow = full.Substring(cut + 1);
+
+            // overflow is empty if nothing remains after the cut
+            if (string.IsNullOrWhiteSpace(overflow))
+                overflow = null;
         }
 
         private static void SafeAddKeyword(StoreNewDocumentProperties props, string keywordName, string value)
