@@ -87,7 +87,9 @@ namespace LitigationHold
         public string KeywordCaseName { get; set; } = "Case Name";
 
         public string KeywordMailTo { get; set; } = "MAIL To";
+        public string KeywordMailToExt { get; set; } = "MAIL To_ext";
         public string KeywordMailCc { get; set; } = "MAIL Cc";
+        public string KeywordMailCcExt { get; set; } = "MAIL Cc_ext";
         public string KeywordMailFrom { get; set; } = "MAIL From";
         public string KeywordMailDate { get; set; } = "MAIL Date";
         public string KeywordMailSubject { get; set; } = "MAIL Subject";
@@ -313,58 +315,68 @@ namespace LitigationHold
             // Add separate SENDER record based on SenderEmailID (MAIL = SENDER), with real AD DisplayName
             AddSenderEmployeeRecord(employeeMap, hold);
 
-            // Document-level email rollups:
+            // Document-level EmployeeID rollups (concatenated with ";"):
             //   - "MAIL To" = ordered: FROM first, then CC, then SENDER, then all other case users
-            //   - "MAIL Cc" = emails where employee record MAIL role is TO
+            //   - "MAIL Cc" = EmployeeIDs where employee record MAIL role is TO
+            // If the concatenated string exceeds 250 chars, overflow goes to MAIL To_ext / MAIL Cc_ext
             var mailToOrdered = new List<string>();
-            var mailCcEmails = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var mailCcOrdered = new List<string>();
             var mailToSeen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var mailCcSeen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // Helper to append email to MAIL To list in order, skipping duplicates
-            Action<string> addMailTo = (string e) =>
+            // Helper to append UserId to list in order, skipping duplicates
+            Action<List<string>, HashSet<string>, string> addUnique = (list, seen, id) =>
             {
-                if (!string.IsNullOrWhiteSpace(e) && mailToSeen.Add(e))
-                    mailToOrdered.Add(e);
+                if (!string.IsNullOrWhiteSpace(id) && seen.Add(id))
+                    list.Add(id);
             };
 
             // Pass 1: FROM
             foreach (var emp in employeeMap.Values)
             {
                 if ((emp.MailRole ?? "").Trim().ToUpperInvariant() == "FROM"
-                    && !string.IsNullOrWhiteSpace(emp.Email))
-                    addMailTo(emp.Email.Trim());
+                    && !string.IsNullOrWhiteSpace(emp.UserId))
+                    addUnique(mailToOrdered, mailToSeen, emp.UserId.Trim());
             }
 
             // Pass 2: CC
             foreach (var emp in employeeMap.Values)
             {
                 if ((emp.MailRole ?? "").Trim().ToUpperInvariant() == "CC"
-                    && !string.IsNullOrWhiteSpace(emp.Email))
-                    addMailTo(emp.Email.Trim());
+                    && !string.IsNullOrWhiteSpace(emp.UserId))
+                    addUnique(mailToOrdered, mailToSeen, emp.UserId.Trim());
             }
 
             // Pass 3: SENDER
             foreach (var emp in employeeMap.Values)
             {
                 if ((emp.MailRole ?? "").Trim().ToUpperInvariant() == "SENDER"
-                    && !string.IsNullOrWhiteSpace(emp.Email))
-                    addMailTo(emp.Email.Trim());
+                    && !string.IsNullOrWhiteSpace(emp.UserId))
+                    addUnique(mailToOrdered, mailToSeen, emp.UserId.Trim());
             }
 
             // Pass 4: all remaining case users (blank role / any other role except TO)
             foreach (var emp in employeeMap.Values)
             {
                 var role = (emp.MailRole ?? "").Trim().ToUpperInvariant();
-                if (string.IsNullOrWhiteSpace(emp.Email)) continue;
+                if (string.IsNullOrWhiteSpace(emp.UserId)) continue;
 
                 if (role == "TO")
-                    mailCcEmails.Add(emp.Email.Trim());
+                    addUnique(mailCcOrdered, mailCcSeen, emp.UserId.Trim());
                 else
-                    addMailTo(emp.Email.Trim());
+                    addUnique(mailToOrdered, mailToSeen, emp.UserId.Trim());
             }
 
-            string mailToValue = string.Join("; ", mailToOrdered);
-            string mailCcValue = string.Join("; ", mailCcEmails.OrderBy(x => x));
+            // Split at 250 chars: primary keyword gets first 250, overflow goes to _ext
+            string mailToFull = string.Join(";", mailToOrdered);
+            string mailToValue;
+            string mailToExtValue;
+            SplitAt250(mailToFull, out mailToValue, out mailToExtValue);
+
+            string mailCcFull = string.Join(";", mailCcOrdered);
+            string mailCcValue;
+            string mailCcExtValue;
+            SplitAt250(mailCcFull, out mailCcValue, out mailCcExtValue);
 
             // URLs
             string instructionUrl = BuildInstructionUrl(caseNumber, caseName, hold.From?.Name, mailDate);
@@ -392,7 +404,9 @@ namespace LitigationHold
                 SafeAddKeyword(props, _config.KeywordMailSubject, mailSubject);
 
                 SafeAddKeyword(props, _config.KeywordMailTo, mailToValue);
+                SafeAddKeyword(props, _config.KeywordMailToExt, mailToExtValue);
                 SafeAddKeyword(props, _config.KeywordMailCc, mailCcValue);
+                SafeAddKeyword(props, _config.KeywordMailCcExt, mailCcExtValue);
 
                 SafeAddKeyword(props, _config.KeywordInstructionUrl, instructionUrl);
                 SafeAddKeyword(props, _config.KeywordCaseFolderUrl, caseFolderUrl);
@@ -615,6 +629,32 @@ namespace LitigationHold
 
                 mod.ApplyChanges();
             }
+        }
+
+        // Split a ";"-delimited string at the 250-char boundary without cutting an ID in half.
+        // primary gets the first chunk (<=250 chars), overflow gets the rest.
+        private static void SplitAt250(string full, out string primary, out string overflow)
+        {
+            const int limit = 250;
+            overflow = null;
+
+            if (string.IsNullOrEmpty(full) || full.Length <= limit)
+            {
+                primary = full;
+                return;
+            }
+
+            // Find the last ";" at or before position 250 so we don't split mid-ID
+            int cut = full.LastIndexOf(';', limit - 1);
+            if (cut <= 0)
+            {
+                // No semicolon found before 250 — take the whole thing as primary
+                primary = full;
+                return;
+            }
+
+            primary = full.Substring(0, cut);
+            overflow = full.Substring(cut + 1);
         }
 
         private static void SafeAddKeyword(StoreNewDocumentProperties props, string keywordName, string value)
