@@ -17,9 +17,6 @@ namespace CAO.LitigationHold
     {
         // PropertyBag keys
         private const string PROP_FILEPATH      = "propFilepath";
-        private const string PROP_FILEPATH_ALT1 = "propFilePath";
-        private const string PROP_FILEPATH_ALT2 = "FormXmlPath";
-        private const string PROP_FILEPATH_ALT3 = "xmlPath";
         private const string PROP_NOACL         = "propNoAcl";
         private const string PROP_ERROR_MESSAGE = "propErrorMessage";
 
@@ -42,11 +39,8 @@ namespace CAO.LitigationHold
 
                 // Resolve XML path
                 string xmlPath;
-                bool got = WorkflowPropertyBagHelper.GetString(args.PropertyBag, PROP_FILEPATH, out xmlPath)
-                        || WorkflowPropertyBagHelper.GetString(args.PropertyBag, PROP_FILEPATH_ALT1, out xmlPath)
-                        || WorkflowPropertyBagHelper.GetString(args.PropertyBag, PROP_FILEPATH_ALT2, out xmlPath)
-                        || WorkflowPropertyBagHelper.GetString(args.PropertyBag, PROP_FILEPATH_ALT3, out xmlPath);
-                if (!got) { FailDual(app, args, "Missing propFilepath/propFilePath/FormXmlPath/xmlPath."); return; }
+                if (!WorkflowPropertyBagHelper.GetString(args.PropertyBag, PROP_FILEPATH, out xmlPath))
+                { FailDual(app, args, "Missing propFilepath."); return; }
                 LogDual(app, args, DefaultDiagLogFolder(), "Resolved XML path: " + xmlPath);
                 if (!File.Exists(xmlPath)) { FailDual(app, args, "Form XML not found: " + xmlPath); return; }
 
@@ -552,7 +546,7 @@ namespace CAO.LitigationHold
                 StringBuilder sb = new StringBuilder();
                 sb.AppendLine("PropertyBag diagnostic:");
                 string[] known = new string[] {
-                    "propFilepath","propFilePath","FormXmlPath","xmlPath","propNoAcl","propErrorMessage"
+                    "propFilepath","propNoAcl","propErrorMessage"
                 };
                 for (int i = 0; i < known.Length; i++)
                 {
@@ -659,7 +653,6 @@ namespace CAO.LitigationHold
                             string mailFlag = ItemField(item, ns, "mail46");
 
                             string c1 = ItemField(item, ns, "employeeuserid27");
-                            string c3 = ItemField(item, ns, "aliasname25");
 
                             // Create folder only when there is value in userid (employeeuserid27)
                             if (string.IsNullOrWhiteSpace(c1))
@@ -669,8 +662,6 @@ namespace CAO.LitigationHold
                             List<string> c1Ids = SplitCsv(c1);
                             for (int ci = 0; ci < c1Ids.Count; ci++)
                                 AddIf(p.Contributors, c1Ids[ci]);
-
-                            AddIf(p.Contributors, c3);
 
                             // Only add employees where MAIL tag is null/blank
                             if (!string.IsNullOrWhiteSpace(p.PersonFolderName) &&
