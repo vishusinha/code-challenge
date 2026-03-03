@@ -666,8 +666,15 @@ namespace CAO.LitigationHold
                             if (string.IsNullOrWhiteSpace(c1))
                                 continue;
 
-                            AddIf(p.Contributors, c1);
-                            AddIf(p.Contributors, c2);
+                            // Support comma-separated employee IDs: grant access for every ID in the list
+                            List<string> c1Ids = SplitCsv(c1);
+                            for (int ci = 0; ci < c1Ids.Count; ci++)
+                                AddIf(p.Contributors, c1Ids[ci]);
+
+                            List<string> c2Ids = SplitCsv(c2);
+                            for (int ci = 0; ci < c2Ids.Count; ci++)
+                                AddIf(p.Contributors, c2Ids[ci]);
+
                             AddIf(p.Contributors, c3);
 
                             // Only add employees where MAIL tag is null/blank
