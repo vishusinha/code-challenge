@@ -659,7 +659,6 @@ namespace CAO.LitigationHold
                             string mailFlag = ItemField(item, ns, "mail46");
 
                             string c1 = ItemField(item, ns, "employeeuserid27");
-                            string c2 = ItemField(item, ns, "employeeuseriddatasetonly28");
                             string c3 = ItemField(item, ns, "aliasname25");
 
                             // Create folder only when there is value in userid (employeeuserid27)
@@ -670,10 +669,6 @@ namespace CAO.LitigationHold
                             List<string> c1Ids = SplitCsv(c1);
                             for (int ci = 0; ci < c1Ids.Count; ci++)
                                 AddIf(p.Contributors, c1Ids[ci]);
-
-                            List<string> c2Ids = SplitCsv(c2);
-                            for (int ci = 0; ci < c2Ids.Count; ci++)
-                                AddIf(p.Contributors, c2Ids[ci]);
 
                             AddIf(p.Contributors, c3);
 
