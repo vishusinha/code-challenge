@@ -11,5 +11,6 @@ namespace challenge.Services
         Employee GetById(String id);
         Employee Create(Employee employee);
         Employee Replace(Employee originalEmployee, Employee newEmployee);
+        int GetNumberOfReports(String id);
     }
 }

@@ -40,6 +40,34 @@ namespace challenge.Services
             return null;
         }
 
+        public int GetNumberOfReports(String id)
+        {
+            var visited = new HashSet<String>();
+            var queue = new Queue<String>();
+            queue.Enqueue(id);
+            visited.Add(id);
+            int count = 0;
+
+            while (queue.Count > 0)
+            {
+                var currentId = queue.Dequeue();
+                var employee = _employeeRepository.GetById(currentId);
+                if (employee?.DirectReports == null) continue;
+
+                foreach (var report in employee.DirectReports)
+                {
+                    if (!visited.Contains(report.EmployeeId))
+                    {
+                        visited.Add(report.EmployeeId);
+                        count++;
+                        queue.Enqueue(report.EmployeeId);
+                    }
+                }
+            }
+
+            return count;
+        }
+
         public Employee Replace(Employee originalEmployee, Employee newEmployee)
         {
             if(originalEmployee != null)

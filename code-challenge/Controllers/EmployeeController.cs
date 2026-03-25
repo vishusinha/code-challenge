@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using challenge.Services;
 using challenge.Models;
-using Newtonsoft.Json.Linq;
 
 namespace challenge.Controllers
 {
@@ -60,66 +59,16 @@ namespace challenge.Controllers
             _logger.LogDebug($"Received employee structure get request for '{id}'");
 
             var employee = _employeeService.GetById(id);
-            var epmStrucutre = new ReportingStructure();
-            if(employee!=null)
-            {
-                epmStrucutre.Employee = employee;
-
-                dynamic rec = new JObject();
-                rec.id = employee.EmployeeId;
-                rec.status = "false";
-                int count = 0;
-                //var allrec = new JArray() as dynamic;
-                //allrec.Add(rec);
-                var it = new List<JObject>();
-                it.Add(rec);
-                int fl = 0;
-            
-                var it1 = new List<JObject>();
-            repeat:
-                if (fl==1)
-                {
-                    fl = 0;
-                    it = it1;
-                }
-              
-
-                foreach(var item in it.ToList())
-                {
-                    var emp = _employeeService.GetById(item["id"].ToString());
-                    count +=(emp.DirectReports == null ? 0 : emp.DirectReports.Count());
-                    if(emp.DirectReports!=null)
-                    {
-                        foreach(var eump in emp.DirectReports)
-                        {
-                            dynamic rrec = new JObject();
-                            rrec.id = eump.EmployeeId;
-                            rrec.status = "false";
-                            it1.Add(rrec);
-                                fl = 1;
-                        }
-                    }
-
-                    var cu = it1.Where(y => y["id"].ToString() == item["id"].ToString()).FirstOrDefault();
-                    if(cu!=null)
-                    {
-                        it1.Remove(cu);
-                    }
-                    it1 = it1.ToList();
-
-                }
-                if(fl==1)
-                {
-                    goto repeat;
-                }
-                epmStrucutre.numberOfReports = count;
-                return Ok(epmStrucutre);
-            }
-
             if (employee == null)
                 return NotFound();
 
-            return Ok(employee);
+            var reportingStructure = new ReportingStructure
+            {
+                Employee = employee,
+                numberOfReports = _employeeService.GetNumberOfReports(id)
+            };
+
+            return Ok(reportingStructure);
         }
         [HttpPut("{id}")]
         public IActionResult ReplaceEmployee(String id, [FromBody]Employee newEmployee)
